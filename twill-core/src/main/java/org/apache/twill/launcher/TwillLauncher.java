@@ -22,13 +22,10 @@ import org.apache.twill.internal.Constants;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.lang.reflect.Method;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
-import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.ArrayList;
@@ -77,12 +74,30 @@ public final class TwillLauncher {
     System.out.println("Launcher completed");
   }
 
+/*
+ *      Java Bootstrap CL
+ *            |
+ *       Java Ext CL
+ *            |
+ *       Base Classloader 
+ * (only has twill-api jars and its dependencies)
+ *            |
+ *   -----------------------------------
+ *   |                                   |
+ * Twill ClassLoader                App ClassLaoder
+ * (twill-core, twill-yarn…)       (application.jar)
+ *
+ */
   private static URLClassLoader createClassLoader(boolean useClassPath) throws Exception {
     List<URL> urls = new ArrayList<>();
 
+    File twillApiJarDir = new File(Constants.Files.TWILL_API_JAR);
     File appJarDir = new File(Constants.Files.APPLICATION_JAR);
     File resourceJarDir = new File(Constants.Files.RESOURCES_JAR);
     File twillJarDir = new File(Constants.Files.TWILL_JAR);
+
+    /* first build the twillApi classloader */
+    List<File> twillApiJarFiles = listJarFiles(new File(appJarDir, "lib"), new ArrayList<File>());
 
     // For backward compatibility, sort jars from twill and jars from application together
     // With TWILL-179, this will change as the user can have control on how it should be.

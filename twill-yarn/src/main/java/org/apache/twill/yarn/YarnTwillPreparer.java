@@ -39,7 +39,7 @@ import com.google.common.io.OutputSupplier;
 import com.google.common.reflect.TypeToken;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import joptsimple.OptionSpec;
+
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.security.token.Token;
@@ -53,6 +53,7 @@ import org.apache.twill.api.RuntimeSpecification;
 import org.apache.twill.api.SecureStore;
 import org.apache.twill.api.TwillController;
 import org.apache.twill.api.TwillPreparer;
+import org.apache.twill.api.TwillRunnable;
 import org.apache.twill.api.TwillSpecification;
 import org.apache.twill.api.logging.LogEntry;
 import org.apache.twill.api.logging.LogHandler;
@@ -112,6 +113,8 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.jar.JarEntry;
 import java.util.jar.JarOutputStream;
+
+import joptsimple.OptionSpec;
 
 /**
  * Implementation for {@link TwillPreparer} to prepare and launch distributed application on Hadoop YARN.
@@ -376,6 +379,7 @@ final class YarnTwillPreparer implements TwillPreparer {
             Map<String, LocalFile> localFiles = Maps.newHashMap();
 
             createLauncherJar(localFiles);
+            createTwillApiJar(createApplicationJarBundler(classAcceptor), localFiles);
             createTwillJar(createBundler(classAcceptor), localFiles);
             createApplicationJar(createApplicationJarBundler(classAcceptor), localFiles);
             createResourcesJar(createBundler(classAcceptor), localFiles);
@@ -480,6 +484,23 @@ final class YarnTwillPreparer implements TwillPreparer {
 
   private LocalFile createLocalFile(String name, Location location, boolean archive) throws IOException {
     return new DefaultLocalFile(name, location.toURI(), location.lastModified(), location.length(), archive, null);
+  }
+
+  private void createTwillApiJar(final ApplicationBundler bundler, Map<String, LocalFile> localFiles)
+    throws IOException {
+    /* walks over every class in org.apache.twill.api package and subpackages and bundles them together */
+    LOG.debug("Create and copy {}", Constants.Files.TWILL_API_JAR);
+    Location location = locationCache.get(Constants.Files.TWILL_API_JAR, new LocationCache.Loader() {
+      @Override
+      public void load(String name, Location targetLocation) throws IOException {
+        // Stuck in the yarnAppClient class to make bundler being able to pickup the right yarn-client version
+        bundler.createBundle(targetLocation, TwillRunnable.class);
+      }
+    });
+
+    LOG.debug("Done {}", Constants.Files.TWILL_API_JAR);
+    localFiles.put(Constants.Files.TWILL_API_JAR, createLocalFile(Constants.Files.TWILL_API_JAR, location, true));
+
   }
 
   private void createTwillJar(final ApplicationBundler bundler, Map<String, LocalFile> localFiles) throws IOException {

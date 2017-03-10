@@ -66,6 +66,7 @@ public final class Constants {
 
     public static final String LAUNCHER_JAR = "launcher.jar";
     public static final String TWILL_JAR = "twill.jar";
+    public static final String TWILL_API_JAR = "twill.api.jar";
     public static final String APPLICATION_JAR = "application.jar";
     public static final String RESOURCES_JAR = "resources.jar";
     public static final String RUNTIME_CONFIG_JAR = "runtime.config.jar";
